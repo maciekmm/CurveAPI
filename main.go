@@ -2,12 +2,11 @@ package main
 
 import (
 	"github.com/drone/routes"
+	"github.com/maciekmm/curveapi/hooks"
 	"log"
 	"net/http"
-    "github.com/maciekmm/curveapi/hooks"
 	"strconv"
 )
-	
 
 func userNameHandler(rw http.ResponseWriter, req *http.Request) {
 	id := req.URL.Query().Get(":name")
@@ -22,10 +21,7 @@ func userIdHandler(rw http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-    log.Println("Starting up curve-api")
-	//profile, err := hooks.GetUserProfileByName("maciekmm", true)
-	//fmt.Println(profile)
-	//fmt.Println(err)
+	log.Println("Starting up curve-api")
 	router := routes.New()
 	router.Get("/", userIdHandler)
 	router.Get("/user/:id([0-9]+)", userIdHandler)

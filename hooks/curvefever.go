@@ -37,6 +37,7 @@ func loadIdFromName(name string) (int, error) {
 		return id, err
 	} else if res.StatusCode == 404 {
 		err = errors.New("User not found")
+		return -1, err
 	}
 	return -1, errors.New("Unexpected error")
 }
