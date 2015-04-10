@@ -9,6 +9,8 @@ import (
 type Profile struct {
 	UID        int              `json:"uid,string" bson:"_id"`
 	Name       string           `json:"name" bson:"name"`
+	Premium    bool             `json:"premium" bson:"premium"`
+	Chempion   bool             `json:"chempion" bson:"chempion"`
 	Picture    string           `json:"picture" bson:"picture"`
 	Ranks      map[string]*Rank `json:"ranks" bson:"ranks"`
 	LastUpdate int64            `json:"last_update,omitempty" bson:"last_update"` //local
