@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/drone/routes"
 	"github.com/maciekmm/curveapi/hooks"
+	"github.com/maciekmm/curveapi/models"
 	"log"
 	"net/http"
 	"strconv"
@@ -11,13 +12,27 @@ import (
 func userNameHandler(rw http.ResponseWriter, req *http.Request) {
 	id := req.URL.Query().Get(":name")
 	prof, _ := hooks.GetUserProfileByName(id, false)
-	routes.ServeJson(rw, prof)
+	displayResult(rw, prof)
 }
 
 func userIdHandler(rw http.ResponseWriter, req *http.Request) {
 	id, _ := strconv.Atoi(req.URL.Query().Get(":id"))
 	prof, _ := hooks.GetUserProfile(id, false)
-	routes.ServeJson(rw, prof)
+	displayResult(rw, prof)
+}
+
+func displayResult(rw http.ResponseWriter, profile *models.Profile) {
+	if profile == nil {
+		resp := struct {
+			Status string `json:"status"`
+		}{
+			"Profile not found",
+		}
+		rw.WriteHeader(404)
+		routes.ServeJson(rw, resp)
+		return
+	}
+	routes.ServeJson(rw, profile)
 }
 
 func main() {
