@@ -27,10 +27,17 @@ func init() {
 
 func loadIdFromName(name string) (int, error) {
 	var err error
-	res, err := http.Get("http://curvefever.com/users/" + name)
+	req, err := http.NewRequest("GET", "http://curvefever.com/users/"+name, nil)
 	if err != nil {
 		return -1, err
 	}
+	req.Header.Set("User-Agent", "CurveAPI")
+	res, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return -1, err
+	}
+
+	defer res.Body.Close()
 	if res.StatusCode == 200 && res.Header.Get("X-Yadis-Location") != "" {
 		str := userIDRegex.FindString(res.Header.Get("X-Yadis-Location"))
 		id, err := strconv.Atoi(str)
@@ -44,13 +51,22 @@ func loadIdFromName(name string) (int, error) {
 
 func loadUserProfile(id int) (*models.Profile, error) {
 	var err error
-	res, err := http.Get("http://curvefever.com/achtung/user/" + strconv.Itoa(id) + "/json")
+	req, err := http.NewRequest("GET", "http://curvefever.com/achtung/user/"+strconv.Itoa(id)+"/json", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "CurveAPI")
+	res, err := (&http.Client{}).Do(req)
+
 	if err != nil {
 		return nil, err
 	}
 
+	defer res.Body.Close()
+
 	var m models.Profile
 	buf := new(bytes.Buffer)
+
 	buf.ReadFrom(res.Body)
 	//Error suppression
 	//When User is unranked in certain Rank
@@ -99,6 +115,9 @@ func GetUserProfile(id int, fresh bool) (*models.Profile, error) {
 		}
 		go func() {
 			err = upsertUserProfile(profile)
+			if err != nil {
+				log.Fatalln(err)
+			}
 		}()
 	}
 	if err != nil {

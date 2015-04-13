@@ -40,6 +40,6 @@ func main() {
 	router := routes.New()
 	router.Get("/", userIdHandler)
 	router.Get("/user/:id([0-9]+)", userIdHandler)
-	router.Get("/user/:name([0-9A-z `._]+)", userNameHandler)
+	router.Get("/user/:name([0-9A-Za-z `._]+)", userNameHandler)
 	log.Fatal(http.ListenAndServe(":2000", router))
 }
