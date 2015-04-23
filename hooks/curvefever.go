@@ -25,41 +25,20 @@ func init() {
 	})
 }
 
-func loadIdFromName(name string) (int, error) {
+// Loads player profile
+func loadProfile(url string) (*models.Profile, error) {
 	var err error
-	req, err := http.NewRequest("GET", "http://curvefever.com/users/"+name, nil)
-	if err != nil {
-		return -1, err
-	}
-	req.Header.Set("User-Agent", "CurveAPI")
-	res, err := (&http.Client{}).Do(req)
-	if err != nil {
-		return -1, err
-	}
-
-	defer res.Body.Close()
-	if res.StatusCode == 200 && res.Header.Get("X-Yadis-Location") != "" {
-		str := userIDRegex.FindString(res.Header.Get("X-Yadis-Location"))
-		id, err := strconv.Atoi(str)
-		return id, err
-	} else if res.StatusCode == 404 {
-		err = errors.New("User not found")
-		return -1, err
-	}
-	return -1, errors.New("Unexpected error")
-}
-
-func loadUserProfile(id int) (*models.Profile, error) {
-	var err error
-	req, err := http.NewRequest("GET", "http://curvefever.com/achtung/user/"+strconv.Itoa(id)+"/json", nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "CurveAPI")
 	res, err := (&http.Client{}).Do(req)
-
 	if err != nil {
 		return nil, err
+	}
+	if res.StatusCode != 200 {
+		return nil, errors.New("User not found")
 	}
 
 	defer res.Body.Close()
@@ -80,36 +59,13 @@ func loadUserProfile(id int) (*models.Profile, error) {
 	return &m, nil
 }
 
-// Gets user profile by its unique name
-// As currently in CurveFever api there's no way to get player data by id directly, it's slower than using GetUserProfile
-// Keep in mind it's not fetching data by player name, but rather by it's unique id visible on http://curvefever.com/users/{name}
-// Fresh indicates whether to wait for new data if it's possible
-// CurveFever api is updated at 6AM UTC
-// If in need of the most actual data, use fresh=true otherwise when caring about efficiency use fresh=false
-func GetUserProfileByName(id string, fresh bool) (*models.Profile, error) {
-	profile, err := getCachedUserProfileByName(id)
-	if err != nil {
-		id, err := loadIdFromName(id)
-		if err != nil {
-			return nil, err
-		}
-		return GetUserProfile(id, fresh)
-	}
-	if err != nil {
-		return nil, err
-	}
-	handleProfileSeek(profile, fresh)
-	return profile, nil
-}
-
-// Gets user profile by its ID
-// Fresh indicates whether to wait for new data if it's possible
-// CurveFever api is updated at 6AM UTC
-// If in need of the most actual data, use fresh=true otherwise when caring about efficiency use fresh=false
-func GetUserProfile(id int, fresh bool) (*models.Profile, error) {
-	profile, err := getCachedUserProfile(id)
+func getUserProfile(id string, fresh bool, url string, getFromCache func(string) (*models.Profile, error)) (*models.Profile, error) {
+	// Get user profile from database
+	profile, err := getFromCache(id)
+	// Check if it failed or if profile needs refresh while requesting most recent data
 	if err != nil || (fresh && profile.NeedsRefresh()) {
-		profile, err = loadUserProfile(id)
+		// Tries to load user profile from CurveFever site
+		profile, err = loadProfile(url)
 		if err != nil {
 			return nil, err
 		}
@@ -119,18 +75,13 @@ func GetUserProfile(id int, fresh bool) (*models.Profile, error) {
 				log.Fatalln(err)
 			}
 		}()
+		return profile, err
 	}
-	if err != nil {
-		return nil, err
-	}
-	handleProfileSeek(profile, fresh)
-	return profile, nil
-}
 
-func handleProfileSeek(profile *models.Profile, fresh bool) {
+	// If the requested data does not have to be fresh but it should be refreshed do it in goroutine
 	if !fresh && profile.NeedsRefresh() {
 		go func() {
-			profile, err := loadUserProfile(profile.UID)
+			profile, err := loadProfile(url)
 			if err != nil {
 				log.Fatalln(err)
 				return
@@ -141,6 +92,25 @@ func handleProfileSeek(profile *models.Profile, fresh bool) {
 			}
 		}()
 	}
+	return profile, nil
+}
+
+// Gets user profile by its unique name
+// As currently in CurveFever api there's no way to get player data by id directly, it's slower than using GetUserProfile
+// Keep in mind it's not fetching data by player name, but rather by it's unique id visible on http://curvefever.com/users/{name}
+// Fresh indicates whether to wait for new data if it's possible
+// CurveFever api is updated at 6AM UTC
+// If in need of the most actual data, use fresh=true otherwise when caring about efficiency use fresh=false
+func GetUserProfileByName(id string, fresh bool) (*models.Profile, error) {
+	return getUserProfile(id, fresh, "http://curvefever.com/achtung/username/"+id+"/json", getCachedUserProfileByName)
+}
+
+// Gets user profile by its ID
+// Fresh indicates whether to wait for new data if it's possible
+// CurveFever api is updated at 6AM UTC
+// If in need of the most actual data, use fresh=true otherwise when caring about efficiency use fresh=false
+func GetUserProfile(id int, fresh bool) (*models.Profile, error) {
+	return getUserProfile(strconv.Itoa(id), fresh, "http://curvefever.com/achtung/user/"+strconv.Itoa(id)+"/json", getCachedUserProfile)
 }
 
 func upsertUserProfile(profile *models.Profile) error {
@@ -149,10 +119,14 @@ func upsertUserProfile(profile *models.Profile) error {
 	return err
 }
 
-func getCachedUserProfile(id int) (*models.Profile, error) {
+func getCachedUserProfile(id string) (*models.Profile, error) {
+	numericId, err := strconv.Atoi(id)
+	if err != nil {
+		return nil, err
+	}
 	var profile models.Profile
 	collection := database.GetDatabase().C("users")
-	err := collection.FindId(id).One(&profile)
+	err = collection.FindId(numericId).One(&profile)
 	return &profile, err
 }
 
