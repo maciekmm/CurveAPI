@@ -16,6 +16,7 @@ import (
 )
 
 var userIDRegex *regexp.Regexp = regexp.MustCompile("([0-9]+)")
+var httpClient *http.Client
 
 func init() {
 	database.GetDatabase().C("users").Create(&mgo.CollectionInfo{})
@@ -23,6 +24,10 @@ func init() {
 		Key:    []string{"name"},
 		Unique: true,
 	})
+
+	httpClient = &http.Client{
+		Timeout: time.Duration(5 * time.Second),
+	}
 }
 
 // Loads player profile
@@ -33,7 +38,7 @@ func loadProfile(url string) (*models.Profile, error) {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "CurveAPI")
-	res, err := (&http.Client{}).Do(req)
+	res, err := httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
