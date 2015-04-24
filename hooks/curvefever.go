@@ -101,8 +101,6 @@ func getUserProfile(id string, fresh bool, url string, getFromCache func(string)
 }
 
 // Gets user profile by its unique name
-// As currently in CurveFever api there's no way to get player data by id directly, it's slower than using GetUserProfile
-// Keep in mind it's not fetching data by player name, but rather by it's unique id visible on http://curvefever.com/users/{name}
 // Fresh indicates whether to wait for new data if it's possible
 // CurveFever api is updated at 6AM UTC
 // If in need of the most actual data, use fresh=true otherwise when caring about efficiency use fresh=false
