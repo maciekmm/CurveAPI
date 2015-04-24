@@ -1,8 +1,6 @@
 package models
 
 import (
-	//"encoding/json"
-	//"fmt"
 	"time"
 )
 
@@ -25,9 +23,10 @@ func LastRemoteUpdate() time.Time {
 //Indicates whether new data may be available on remote servers
 func (profile Profile) NeedsRefresh() bool {
 	lastUpdate := time.Unix(profile.LastUpdate, 0).UTC()
+	now := time.Now().UTC()
 	if time.Since(lastUpdate).Hours() > 24 {
 		return true
-	} else if lastUpdate.Hour() < 6 && time.Now().Hour() >= 6 {
+	} else if (lastUpdate.Hour() < 6 && lastUpdate.Day() == now.Day()) || (lastUpdate.Day() != now.Day() && now.Hour() >= 6) {
 		return true
 	}
 	return false
