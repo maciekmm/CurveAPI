@@ -11,7 +11,7 @@ And it's used on [CurveApi.cf](http://curveapi.cf)
 
 ----
 ## Installation
-1. Get github.com/drone/routes
+1. Get github.com/julienschmidt/httprouter
 
 >go get github.com/julienschmidt/httprouter
 	
