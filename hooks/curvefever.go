@@ -77,7 +77,7 @@ func getUserProfile(id string, fresh bool, url string, getFromCache func(string)
 		go func() {
 			err = upsertUserProfile(profile)
 			if err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 			}
 		}()
 		return profile, err
@@ -88,12 +88,12 @@ func getUserProfile(id string, fresh bool, url string, getFromCache func(string)
 		go func() {
 			profile, err := loadProfile(url)
 			if err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 				return
 			}
 			err = upsertUserProfile(profile)
 			if err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 			}
 		}()
 	}

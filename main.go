@@ -7,11 +7,20 @@ import (
 	"github.com/maciekmm/curveapi/models"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 )
 
 type status struct {
 	Message string `json:"status"`
+}
+
+func init() {
+	f, err := os.OpenFile("./curveapi.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("Error opening file: %v", err)
+	}
+	log.SetOutput(f)
 }
 
 func userNameHandler(rw http.ResponseWriter, req *http.Request, ps httprouter.Params) {
